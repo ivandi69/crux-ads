@@ -1,0 +1,53 @@
+# Description: SMB server and client for unix
+# URL:         https://www.samba.org
+# Maintainer:  ivandi
+# Depends on:  linux-pam libarchive libcap dbus popt tdb tevent ldb python3 gnutls p5-parse-yapp rpcsvc-proto
+# Optional:    avahi cups krb5 openldap jansson
+
+name=samba
+version=4.14.5
+release=1
+source=(https://www.samba.org/samba/ftp/stable/$name-$version.tar.gz \
+    winbindd samba)
+
+build () {
+    PKGMK_SAMBA="--without-ad-dc"
+    prt-get isinst krb5 && PKGMK_SAMBA+=" --with-system-mitkrb5"
+    prt-get isinst openldap || PKGMK_SAMBA+=" --without-ldap --without-ads"
+    prt-get isinst jansson || PKGMK_SAMBA+=" --without-json"
+
+    cd $name-$version
+
+    ./configure \
+        --enable-fhs \
+        --prefix=/usr \
+        --libexecdir=/usr/lib \
+        --localstatedir=/var \
+        --sysconfdir=/etc \
+        --with-privatedir=/var/lib/samba/private \
+        --with-pammodulesdir=/lib/security \
+        --bundled-libraries=!tdb,!talloc,!tevent,!popt,!ldb,!cmocka \
+        $PKGMK_SAMBA
+
+    /usr/bin/python3 ./buildtools/bin/waf build --jobs=${JOBS:-1}
+    /usr/bin/python3 ./buildtools/bin/waf install --destdir=$PKG
+
+    # man pages
+    local p
+    for p in docs/manpages/*; do 
+        install -D -m 644 $p $PKG/usr/share/man/man${p##*.}/${p##*/}
+    done
+
+    # cleanup
+    chmod 1777 $PKG/var/lock
+
+    # config-files and start-scripts
+    install -d $PKG/etc/{samba,rc.d,pam.d}
+    install -m 0600 examples/smb.conf.default $PKG/etc/samba
+    install -m 0755 $SRC/winbindd $PKG/etc/rc.d
+    install -m 0755 $SRC/samba $PKG/etc/rc.d
+
+    # revdep
+    install -d $PKG/etc/revdep.d
+    echo '/usr/lib/samba' > $PKG/etc/revdep.d/samba
+}

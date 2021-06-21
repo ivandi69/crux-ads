@@ -1,0 +1,53 @@
+# Description: CUPS - Common UNIX Printing System
+# URL:         https://www.cups.org
+# Maintainer:  ivandi
+# Depends on:  acl libusb zlib linux-pam
+# Optional:    avahi krb5 gnutls
+
+name=cups
+version=2.3.3
+release=1
+source=(https://github.com/apple/cups/releases/download/v$version/$name-$version-source.tar.gz \
+    cups.rc cups.pam)
+
+build () {
+    PKGMK_CUPS="--disable-systemd"
+    prt-get isinst krb5 || PKGMK_CUPS+=" --disable-gssapi"
+    prt-get isinst gnutls || PKGMK_CUPS+=" --disable-gnutls"
+
+    cd $name-$version
+
+    CC=cc CXX=c++ \
+        ./configure --prefix=/usr \
+        --sysconfdir=/etc \
+        --libdir=/usr/lib \
+        --localstatedir=/var \
+        --with-docdir=/usr/share/cups/doc \
+        --with-logdir=/var/log/cups \
+        --with-cups-user=daemon \
+        --with-cups-group=lp \
+        --with-languages="" \
+        --without-rcdir \
+        --with-optim="$CFLAGS" \
+        --enable-acl \
+        $PKGMK_CUPS
+
+    make
+    make BUILDROOT=$PKG install
+
+    # conflict with cups-filters
+    rm -r $PKG/usr/share/cups/{banners,data}
+
+    # cleanup
+    rm -rf $PKG/usr/share/{applications,icons}
+    chmod 0755 $PKG/var/{cache,spool}   
+    chmod -R +w $PKG
+
+    # start script and pam module
+    install -D -m 755 $SRC/cups.rc $PKG/etc/rc.d/cups
+    install -D -m 644 $SRC/cups.pam $PKG/etc/pam.d/cups
+
+    # blacklist usblp kernel module
+    install -d $PKG/etc/modprobe.d
+    echo 'blacklist usblp' > $PKG/etc/modprobe.d/cups.conf
+}
