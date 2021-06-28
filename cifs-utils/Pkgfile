@@ -1,0 +1,31 @@
+# Description: Utilities for doing and managing mounts of the Linux CIFS filesystem
+# URL:         https://wiki.samba.org/index.php/LinuxCIFS_utils
+# Maintainer:  ivandi
+# Depends on:  linux-pam samba keyutils talloc python3-docutils
+
+name=cifs-utils
+version=6.13
+release=1
+source=(https://download.samba.org/pub/linux-cifs/$name/$name-$version.tar.bz2
+        cifs)
+
+build () {
+    cd $name-$version
+
+    ./configure --prefix=/usr --with-pamdir=/lib/security --disable-systemd
+    make
+    make DESTDIR=$PKG install
+
+    install -D -m 644 contrib/request-key.d/cifs.idmap.conf $PKG/etc/request-key.d/cifs.idmap.conf 
+    install -D -m 644 contrib/request-key.d/cifs.spnego.conf $PKG/etc/request-key.d/cifs.spnego.conf 
+
+    chmod +s $PKG/sbin/mount.cifs
+    install -d $PKG/etc/cifs-utils
+    ln -s /usr/lib/cifs-utils/idmapwb.so $PKG/etc/cifs-utils/idmap-plugin
+
+    prt-get isinst bash-completion && \
+        install -D -m 644 bash-completion/smbinfo \
+        $PKG/usr/share/bash-completion/completions/smbinfo
+
+    install -D -m 0755 $SRC/cifs $PKG/etc/rc.d/cifs
+}
