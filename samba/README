@@ -1,7 +1,7 @@
 Install krb5 first.
 Then openldap.
 Optionally avahi then cups.
-Then samba.
+Then samba and cifs-utils.
 
 Create or modify the configs below.
 
@@ -15,6 +15,10 @@ At this point you should be able to login as AD user.
 
 CONFIGURATION:
 ==============
+Create /etc/krb5.conf. It can be empty.
+It is included by the config in /var/lock/samba/smb_krb5/.
+Without it pam_winbind does not create tickets and mount.cifs does not work
+with sec=krb5 option for cifs mounts in fstab.
 
 /etc/samba/smb.conf:
 ====================
@@ -127,6 +131,16 @@ aliases:     files
 # (needs "winbind offline logon = yes" in smb.conf)
 cached_login = yes
 
+# authenticate using kerberos
+krb5_auth = yes
+
+# when using kerberos, request a "FILE" or "DIR" krb5 credential cache type
+# (leave empty to just do krb5 authentication but not have a ticket
+# afterwards)
+krb5_ccache_type = FILE
+
+# password expiry warning period in days
+warn_pwd_expire = 14
+
 # create homedirectory on the fly
 mkhomedir = yes
-===============================
