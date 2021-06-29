@@ -2,6 +2,7 @@ Install krb5 first.
 Then openldap.
 Optionally avahi then cups.
 Then samba and cifs-utils.
+Optionally rebuild openssh.
 
 Create or modify the configs below.
 
@@ -19,6 +20,8 @@ Create /etc/krb5.conf. It can be empty.
 It is included by the config in /var/lock/samba/smb_krb5/.
 Without it pam_winbind does not create tickets and mount.cifs does not work
 with sec=krb5 option for cifs mounts in fstab.
+
+Add --fqdn to OPTS in /etc/rc.d/dhcpcd
 
 /etc/samba/smb.conf:
 ====================
