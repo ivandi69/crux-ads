@@ -1,0 +1,42 @@
+# Description: Secure SHell server and client tools
+# URL:         http://www.openssh.org/
+# Maintainer:  ivandi
+# Depends on:  linux-pam openssl zlib
+# Optional:    krb5
+
+name=openssh
+version=8.6p1
+release=1
+source=(http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$name-$version.tar.gz
+        sshd.rc sshd.pam)
+
+build() {
+    prt-get isinst krb5 && PKGMK_OPENSSH+=" --with-kerberos5=/usr"
+
+    cd $name-$version
+
+    ./configure \
+        --prefix=/usr \
+        --libexecdir=/usr/lib/ssh \
+        --sysconfdir=/etc/ssh \
+        --with-mantype=man \
+        --mandir=/usr/share/man \
+        $PKGMK_OPENSSH \
+        --with-md5-passwords \
+        --with-pam \
+        --with-privsep-user=nobody \
+        --with-privsep-path=/var/empty \
+        --with-xauth=/usr/bin/xauth
+
+    make
+    make DESTDIR=$PKG install
+    install -D -m 755 $SRC/sshd.rc $PKG/etc/rc.d/sshd
+    install -D -m 644 $SRC/sshd.pam $PKG/etc/pam.d/sshd
+    rm -r $PKG/var
+
+    # enable PAM
+    sed '/^#UsePAM/aUsePAM yes' -i $PKG/etc/ssh/sshd_config
+
+    install -D -m 755 contrib/ssh-copy-id $PKG/usr/bin/ssh-copy-id
+    install -D -m 644 contrib/ssh-copy-id.1 $PKG/usr/share/man/man1/ssh-copy-id.1
+}
