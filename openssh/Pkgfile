@@ -5,7 +5,7 @@
 # Optional:    krb5
 
 name=openssh
-version=8.6p1
+version=8.7p1
 release=1
 source=(http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/$name-$version.tar.gz
         sshd.rc sshd.pam)
